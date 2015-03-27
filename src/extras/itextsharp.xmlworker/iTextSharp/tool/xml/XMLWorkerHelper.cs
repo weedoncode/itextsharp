@@ -164,6 +164,20 @@ namespace iTextSharp.tool.xml {
             p.AddListener(worker);
             p.Parse(inp);
         }
+        
+        virtual public void ParseXHtml(PdfWriter writer, Document doc, TextReader inp, ITagProcessorFactory tagFactory) {
+            CssFilesImpl cssFiles = new CssFilesImpl();
+            cssFiles.Add(GetDefaultCSS());
+            StyleAttrCSSResolver cssResolver = new StyleAttrCSSResolver(cssFiles);
+            HtmlPipelineContext hpc = new HtmlPipelineContext(null);
+            hpc.SetAcceptUnknown(true).AutoBookmark(true).SetTagFactory(tagFactory != null ? tagFactory : GetDefaultTagProcessorFactory());
+            IPipeline pipeline = new CssResolverPipeline(cssResolver, new HtmlPipeline(hpc, new PdfWriterPipeline(doc,
+                    writer)));
+            XMLWorker worker = new XMLWorker(pipeline, true);
+            XMLParser p = new XMLParser();
+            p.AddListener(worker);
+            p.Parse(inp);
+        }
 
         virtual public void ParseXHtml(PdfWriter writer, Document doc, Stream inp, Stream inCssFile, Encoding charset, IFontProvider fontProvider) {
             CssFilesImpl cssFiles = new CssFilesImpl();
@@ -185,6 +199,26 @@ namespace iTextSharp.tool.xml {
             }
         }
 
+	virtual public void ParseXHtml(PdfWriter writer, Document doc, Stream inp, Stream inCssFile, Encoding charset, IFontProvider fontProvider, ITagProcessorFactory tagFactory) {
+            CssFilesImpl cssFiles = new CssFilesImpl();
+            if (inCssFile != null)
+                cssFiles.Add(GetCSS(inCssFile));
+            else
+                cssFiles.Add(GetDefaultCSS());
+            StyleAttrCSSResolver cssResolver = new StyleAttrCSSResolver(cssFiles);
+            HtmlPipelineContext hpc = new HtmlPipelineContext(new CssAppliersImpl(fontProvider));
+            hpc.SetAcceptUnknown(true).AutoBookmark(true).SetTagFactory(tagFactory != null ? tagFactory : GetDefaultTagProcessorFactory());
+            HtmlPipeline htmlPipeline = new HtmlPipeline(hpc, new PdfWriterPipeline(doc, writer));
+            IPipeline pipeline = new CssResolverPipeline(cssResolver, htmlPipeline);
+            XMLWorker worker = new XMLWorker(pipeline, true);
+            XMLParser p = new XMLParser(true, worker, charset);
+            if (charset != null) {
+                p.Parse(inp, charset);
+            } else {
+                p.Parse(inp);
+            }
+        }
+        
         virtual public void ParseXHtml(PdfWriter writer, Document doc, Stream inp, Stream inCssFile) {
             ParseXHtml(writer, doc, inp, inCssFile, null, new XMLWorkerFontProvider());
         }
